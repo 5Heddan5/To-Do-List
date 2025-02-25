@@ -12,9 +12,26 @@ const useForm = () => {
     });
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    console.log("task:", task.thing); // Log only the task value (thing)
+    console.log("task:", task.thing);
+
+    // Send the task to the backend
+    const response = await fetch("http://localhost:3000/tasks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(task),
+    });
+
+    if (response.ok) {
+      console.log("Task added to database!");
+    } else {
+      console.error("Error adding task");
+    }
+
+    setTask({ thing: "" }); // Clear the input field after submission
   };
 
   return {
