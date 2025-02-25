@@ -1,0 +1,17 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+}
+
+.from-content{
+    display: grid;
+    justify-content: center;
+    align-items: center;
+}
+
+input, button{
+    border: 1px solid black;
+}
+
