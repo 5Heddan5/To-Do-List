@@ -1,19 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useForm from "./UseForm";
 
 export function Form() {
   const { task, handleChange, handleSubmit } = useForm();
   const [tasks, setTasks] = useState([]);
 
-  const handleFormSubmit = async (event) => {
-    await handleSubmit(event); // Add the task to the database
-    fetchTasks(); // Fetch updated tasks
+  // Fetch tasks when the component mounts
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  // Fetch tasks from the backend
+  const fetchTasks = async () => {
+    const response = await fetch("http://localhost:3000/tasks");
+    const data = await response.json();
+    console.log("Fetched tasks from backend:", data); // Debugging log to check fetched tasks
+    setTasks(data);
   };
 
-  const fetchTasks = async () => {
-    const response = await fetch("http://localhost:3000/tasks"); // API endpoint
-    const data = await response.json();
-    setTasks(data); // Update the tasks state with data from the server
+  const handleFormSubmit = async (event) => {
+    await handleSubmit(event); // Add the task to the database
+    fetchTasks(); // Fetch updated tasks after adding
+  };
+
+  const handleDelete = async (id) => {
+    await fetch(`http://localhost:3000/tasks/${id}`, { method: "DELETE" });
+    fetchTasks(); // Refresh the task list after deletion
   };
 
   return (
@@ -31,11 +43,18 @@ export function Form() {
           Add Task
         </button>
       </form>
-      <ul>
-        {tasks.map((task, index) => (
-          <li key={index}>{task.thing}</li>
-        ))}
-      </ul>
+      <div className="tasks">
+        {tasks.length > 0 ? (
+          tasks.map((task) => (
+            <li key={task.id}>
+              {task.thing}{" "}
+              <button onClick={() => handleDelete(task.id)}>Delete</button>
+            </li>
+          ))
+        ) : (
+          <p>No tasks available.</p>
+        )}
+      </div>
     </div>
   );
 }
