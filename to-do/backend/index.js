@@ -2,63 +2,58 @@ import express from "express";
 import Database from "better-sqlite3";
 import cors from "cors";
 
+const db = new Database("./todo.db");
 const app = express();
-const db = new Database("todolist.db");
 
+app.get("");
+// Middleware
 app.use(express.json());
 app.use(cors());
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS task (
-    taskId INTEGER PRIMARY KEY AUTOINCREMENT,
-    taskName TEXT NOT NULL,
-    taskDescription TEXT NOT NULL,
-    completed INTEGER DEFAULT 0
-  )
-`);
+// Create a "tasks" table if it doesn't exist
+db.prepare(
+  `CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    thing TEXT NOT NULL
+  )`
+).run();
 
-// Hämtar alla aktivitet
-app.get("/api/task/get", (req, res) =>{
-const query = db.prepare("SELECT * FROM task");
-const tasks = query.all();
-res.json(tasks);
+// Route to get all tasks
+app.get("/tasks", (req, res) => {
+  const tasks = db.prepare("SELECT * FROM tasks").all();
+  res.json(tasks);
 });
 
-// Lägger till en ny aktivitet
-app.post("/api/taks/add", (req, res) => {
-  const { taskName, taskDescription } = req.body;
-  if (!taskName || !taskDescription) {
-    return res.status(400).json({ error: "Missing todoName or todoDescription" });
+// Route to add a task
+app.post("/tasks", (req, res) => {
+  const { thing } = req.body;
+  if (!thing) {
+    return res.status(400).json({ error: "Task is required" });
   }
-  const query  = db.prepare("INSERT INTO task (taskName, taskDescription) VALUES (?, ?)");
 
-  const result = query.run(taskName, taskDescription);
-  res.status(201).json({ message: "Task added", id: result.lastInsertRowid})
-  });
+  const stmt = db.prepare("INSERT INTO tasks (thing) VALUES (?)");
+  stmt.run(thing);
 
-  // Uppdaterar en aktivitet baserat på id
-  app.put("/api/task/update/:id", (req, res) => {
-    const { completed } = req.body;
-    const { id } = req.params;
+  res.status(201).json({ message: "Task added successfully!" });
+});
 
-    if (!id) return res.status(400).json({ error: "Missing id"});
+// Route to delete a task by ID
+app.delete("/tasks/:id", (req, res) => {
+  const { id } = req.params;
 
-    const query = db.prepare("UPDATE task SET completed = ? where taskId = ?");
-    query.run(completed ? 1 : 0, id);
-    res.json({ message: "Task updated"});
-    })
+  // Delete task from database
+  const stmt = db.prepare("DELETE FROM tasks WHERE id = ?");
+  const result = stmt.run(id);
 
-    // Tar bort en aktivitet baserat på id
-    app.delete("/api/task/delete/:id", (req, res) => {
-      const { id } = req.params; 
-      const query = db.prepare("DELETE FROM task WHERE taskId = ?");
-      const result = query.run(id);
+  if (result.changes === 0) {
+    return res.status(404).json({ error: "Task not found" });
+  }
 
-      if (result.changes === 0) return res.status(404).json({ message: "Task not found"});
+  res.status(200).json({ message: "Task deleted successfully" });
+});
 
-      res.json({ message: "Task deleted"});
-    })
 
 app.listen(3000, () => {
-  console.log("Server running on port 3000");
+  console.log("Listening to port 3000");
+  console.log("Server running on http://localhost:3000");
 });
